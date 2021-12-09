@@ -1,0 +1,49 @@
+﻿<div id="TInput" style="display: inline-flex;align-items: center;justify-content: space-between;padding: 4px 11px;">
+    <div style="margin-right: 2px;">
+        @Prefix
+    </div>
+    <input type="@Type" maxlength="@MaxLength" value="@Value" @oninput="OnInput" @onkeyup="CheckKeys"  @onchange="OnChangeInput" style="outline: none;height: 29px;background-color: rgba(0,0,0,0); border:@(Bordered?"1px solid #eee":"none");@Style" placeholder="@Placeholder">
+</div> 
+@code
+{
+
+    [Parameter]
+    public bool Bordered { get; set; } = true;
+    [Parameter]
+    public int MaxLength { get; set; } = 255;
+    [Parameter]
+    public RenderFragment Prefix { get; set; }
+    [Parameter]
+    public string Style { set; get; }
+    [Parameter]
+    public string Value { get; set; }
+    [Parameter]
+    public string Placeholder { get; set; }
+
+    [Parameter]
+    public string Type { get; set; } = "text";
+    [Parameter]
+    public EventCallback<string?> ValueChanged { set; get; }
+    [Parameter]
+    public EventCallback<ChangeEventArgs> OnInput { set; get; }
+    [Parameter]
+    public EventCallback<string> OnPressEnter { set; get; }
+    [Parameter]
+    public EventCallback OnChange { get; set; }
+
+    private Task OnChangeInput(ChangeEventArgs e)
+    {
+        var value = e?.Value?.ToString();
+        OnChange.InvokeAsync();
+        
+        return ValueChanged.InvokeAsync(value);
+    }
+    
+    void CheckKeys(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            OnPressEnter.InvokeAsync(Value);
+        }
+    }
+}

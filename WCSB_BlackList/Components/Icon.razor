@@ -1,0 +1,14 @@
+﻿
+<i class="fa fa-@(Type);"  aria-hidden="true" style="color: @(Color);font-size: @(Size)px;@Style"></i>
+
+@code {
+    [Parameter]public string Style { set; get; }
+    [Parameter]public string Type { set; get; }
+
+    [Parameter]
+    public string Color { set; get; } = "#333";
+
+    [Parameter]
+    public int Size { set; get; } = 14;
+
+}

@@ -1,0 +1,344 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>黑名单管理</title>
+    <!-- import Vue.js -->
+    <script src="//vuejs.org/js/vue.min.js"></script>
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <!-- 引入组件库 -->
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <script src="js/jquery.min.js"></script>
+    <style>
+        *{
+            margin: 0;padding: 0;
+        }
+        #BlackList{
+            width: 1200px;
+            margin: 0 auto;
+        }
+        nav{
+            display: flex;
+            width: 100%;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom:1px solid #eee;
+        }
+        nav .search{
+            width: 300px;
+        }
+        nav .button-group{
+            display: flex;
+        }
+        nav .upload-demo{
+            margin-right: 10px;
+        }
+        nav .upload{
+            position: relative;
+            display: block;
+        }
+
+        nav .upload:hover .hint{
+            display: block;
+        }
+        nav .upload .hint{
+            display: none;
+            position: absolute;
+            background-color: white;
+            left: 0;
+            top: 100%;
+            z-index: 999;
+            box-shadow: 1px 1px 8px 1px #ccc;
+        }
+
+        nav .upload .hint img{
+            height: auto;
+        }
+        .input-group .input-control{
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .input-group .input-control span{
+            text-align: right;
+            width: 80px;
+        }
+        .input-group .input-control .val{
+            flex: 1;
+            margin-left: 10px;
+        }
+        .important{
+            color: red;
+            font-style: normal;
+        }
+    </style>
+</head>
+<body>
+    <div id="BlackList">
+        <nav>
+            <div class="button-group">
+                    <el-upload
+                        class="upload-demo"
+                        :show-file-list="false"
+                        :on-change="onUpload"
+                        :action="host+'UploadExcel'">
+                        <span class="upload">
+                            <el-button type="primary" icon="el-icon-notebook-2">导入Excel数据</el-button>
+                            <div class="hint">
+                                <p style="color: #26ab63;text-align: left;padding: 10px">Excel文件格式示例</p>
+                                <p>
+                                    <img src="images/excel_example.png" alt="">
+                                </p>
+                            </div>
+                        </span>
+                    </el-upload>
+                    <el-button type="primary" icon="el-icon-document-add" @click="name=null;address=null;idCard=null;id=0;dialogVisible=true;">添加单条数据</el-button>
+            </div>
+            <div class="search">
+                <el-input placeholder="请输入搜索关键字" v-model="keyword" class="input-with-select">
+                    <el-button slot="append" icon="el-icon-search" @click="search"></el-button>
+                </el-input>
+            </div>
+        </nav>
+        <article>
+            <div style="margin-top: 50px;max-height: calc(100vh - 200px);overflow-y:auto;">
+                <el-table
+                        :data="tableData"
+                        stripe
+                        :cell-style="{textAlign:'center'}"
+                        :header-cell-style="{textAlign:'center'}"
+                        style="width: 100%;text-align: center;">
+                    <el-table-column
+                            prop="id"
+                            label="Id"
+                            width="180">
+                    </el-table-column>
+                    <el-table-column
+                            prop="name"
+                            label="姓名"
+                            width="90">
+                    </el-table-column>
+                    <el-table-column
+                            prop="idCard"
+                            width="200"
+                            label="身份证号">
+                    </el-table-column>
+                    <el-table-column
+                            prop="address"
+                            label="户籍地">
+                    </el-table-column>
+                    <el-table-column
+                            fixed="right"
+                            label="操作"
+                            width="100">
+                        <template slot-scope="scope">
+                            <el-button type="text" size="small" @click="onEdit(scope.row)">编辑</el-button>
+                            <el-button type="text" size="small" @click="onRemove(scope.row)">移除</el-button>
+                        </template>
+                    </el-table-column>
+                </el-table>
+            </div>
+            <div style="margin-top: 20px;text-align: right">
+                <el-pagination
+                        background
+                        :page-size="20"
+                        layout="prev, pager, next"
+                        @current-change="changePage"
+                        :current-page="page"
+                        :total="total">
+                </el-pagination>
+            </div>
+        </article>
+        <el-dialog
+                title="提示"
+                :visible.sync="dialogVisible"
+                width="20%"
+                :close-on-click-modal="false"
+                center>
+            <div class="input-group">
+                <div class="input-control">
+                    <span class="key">姓名 <em class="important">*</em></span>
+                    <el-input class="val" v-model="name" type="text" placeholder="请输入姓名"></el-input>
+                </div>
+                <div class="input-control">
+                    <span class="key">证件号码 <em class="important">*</em></span>
+                    <el-input class="val" type="text" v-model="idCard" placeholder="请输入证件号码"></el-input>
+                </div>
+                <div class="input-control">
+                    <span class="key">户籍地 &nbsp;</span>
+                    <el-input class="val" type="text" v-model="address" placeholder="请输入户籍地"></el-input>
+                </div>
+            </div>
+            <span slot="footer" class="dialog-footer">
+                <el-button @click="dialogVisible = false;id = 0;">取 消</el-button>
+                <el-button type="primary" @click="updatePeople">确 定</el-button>
+            </span>
+        </el-dialog>
+    </div>
+    <script type="text/javascript">
+        const host = "https://localhost:7117/api/";
+        Vue.prototype.$throttle = function (func,time){
+            let timer = null;
+            return function(){
+                console.log(time);
+                if (timer){
+                    clearTimeout(timer)
+                }
+                timer =  setTimeout(()=>{
+                    func();
+                    timer = null;
+                },time)
+            }
+        }
+        new Vue({
+            el:"#BlackList",
+            data:{
+                host : "https://localhost:7117/api/",
+                keyword:null,
+                tableData: [],
+                page:1,
+                total:0,
+                loading:null,
+                dialogVisible:false,
+                name:null, // 姓名
+                idCard:null, // 证件号
+                address:null, // 户籍地
+                id:0 // 选中的数据ID
+
+            },
+            mounted(){
+                this.GetData("GetBlackLists");
+            },
+            methods:{
+                changePage(e){
+                    this.page = e;
+                    let method = !this.keyword?"GetBlackLists":"Search";
+                    this.GetData(method);
+                },
+                GetData(method,type = "get"){
+                    this.loading = this.$loading({
+                        lock: true,
+                        text: 'Loading',
+                        spinner: 'el-icon-loading',
+                        background: 'rgba(255, 255, 255, 0.7)'
+                    });
+                    let options = {
+                        page:this.page
+                    }
+                    if (method === "Search"){
+                        options = Object.assign({},{
+                            keyword:this.keyword
+                        },options);
+                    }
+                    $.ajax({
+                        url:host+method,
+                        data:options,
+                        type:type,
+                        success: (res)=> {
+                            if (res.code === 200){
+                                this.tableData = res.data.list;
+                                this.total = res.data.total;
+                            }else{
+                                this.$message.error(res.message);
+                            }
+                            this.loading.close();
+                        }
+                    })
+                },
+                search(){
+                    this.page = 1;
+                    this.GetData("Search");
+                },
+                onUpload(res){
+                    if (res.status === "ready"){
+                        return this.loading = this.$loading({
+                            lock: true,
+                            text: 'Loading',
+                            spinner: 'el-icon-loading',
+                            background: 'rgba(0, 0, 0, 0.7)'
+                        });
+                    }else if(res.status === "success"){
+                        let result = res.response;
+                        if (result.code === 200) {
+                            this.page = 1;
+                            this.GetData("GetBlackLists");
+                            this.$message.success(result.message);
+                        }
+                        else
+                            this.$message.error(result.message);
+                    }else if(res.status === "fail")
+                        this.$message.error("上传出错, 请检查文件是否损坏!");
+                    this.loading.close();
+
+                },
+                onRemove(item){
+                    this.$confirm("此操作将永久移除该条数据, 是否继续?","提示",{
+                        confirmButtonText: '确定',
+                        cancelButtonText: '取消',
+                        type: 'warning'
+                    }).then(() => {
+                        this.ajax("DeletePeople",{id:item.id}).then(res=>{
+                            if (res.code === 200){
+                                this.$message({
+                                    type: 'success',
+                                    message: '删除成功!'
+                                });
+                                this.GetData("GetBlackLists");
+                            }else{
+                                this.$message({
+                                    type: 'error',
+                                    message: res.message
+                                });
+                            }
+                        })
+
+                    }).catch(() => {
+                        this.$message({
+                            type: 'info',
+                            message: '已取消删除'
+                        });
+                    });
+                },
+                onEdit(item){
+                    let {id,address,idCard,name} = item;
+                    this.id = id;
+                    this.address = address;
+                    this.idCard = idCard;
+                    this.name = name;
+                    this.dialogVisible = true;
+                },
+                async ajax(url,data){
+                    let response = await fetch(host+url,{
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body:JSON.stringify(data)
+                    });
+                    return response.json();
+                },
+                updatePeople(){
+                    let {name,idCard,address,id} = this;
+                    if (!name || !idCard)
+                        return this.$message.error("请检查必要信息是否输入完整");
+                    this.ajax("UpdatePeople",{
+                        name,address,idCard,id
+                    }).then(res=>{
+                        if (res.code === 200){
+                            this.$message.success(res.message);
+                            this.GetData("GetBlackLists");
+                        }else{
+                            this.$message.error(res.message);
+                        }
+                        this.dialogVisible = false;
+                        id = 0;
+                    })
+                }
+            }
+        })
+    </script>
+</body>
+</html>

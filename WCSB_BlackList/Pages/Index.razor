@@ -1,0 +1,47 @@
+﻿@page "/"
+@inject ConfirmService _confirmService
+<div id="BlackList">
+    <NavTitle Title="信息查询"></NavTitle>
+    <TCell Title="姓名" RightArrow="false">
+        <ContentTag>
+            <TInput @bind-Value="Name" Placeholder="请输入姓名" Style="text-align: right;width: 50vw;" Bordered="false"></TInput>
+        </ContentTag>
+        
+    </TCell>
+    <TCell Title="身份证号" RightArrow="false">
+        <ContentTag>
+            <TInput @bind-Value="IdCard" Placeholder="请输入身份证号" Style="text-align: right;width: 50vw;" Bordered="false"></TInput>
+        </ContentTag>
+    </TCell>
+    <div style="text-align: center;">
+        
+        <Button Type="@ButtonType.Primary" Size="@ButtonSize.Default" Style="width: 80%;margin: 20px 0;" OnClick="Search">查 询</Button>
+    </div>
+    
+</div>
+@code {
+    string Name { set; get; } = "";
+    string IdCard { set; get; } = "";
+    bool Visible { set; get; } = true;
+
+    async void Search()
+    {
+        // 提示类型
+        var type = ConfirmIcon.Success;
+        var content = "未查到该人员";
+        // 配置
+        var options = new ConfirmButtonOptions()
+        {
+            Button1Props = new AntDesign.ButtonProps()
+            {
+               ChildContent = "确定"
+            }
+        };
+        var confirmResult = await 
+            _confirmService.Show(
+                content, 
+                "查询结果", 
+                ConfirmButtons.OK, 
+                type,options);
+    }
+}

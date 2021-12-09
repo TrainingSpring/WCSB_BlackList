@@ -1,0 +1,32 @@
+﻿@*
+*通用cell组件
+*@
+<div id="TCell" style="display: flex;justify-content: space-between;width:calc(100vw - 20px);padding: 10px;align-items: center;border-bottom: 1px solid #eee;background-color: white;@Style" @onclick="Onclick">
+    <div class="t-title">@Title@TitleTag</div>
+    <div class="t-content" style="flex: 1;margin-left: 8px;text-align: right;">@Content @ContentTag</div>
+    <div class="t-right">
+        @if (RightArrow)
+        {
+            <div class="fa fa-angle-right" style="font-size: 18px;"></div>
+        }
+         
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string? Title { set; get; }
+
+    [Parameter]
+    public string? Content { set; get; } = "";
+    [Parameter]
+    public bool RightArrow { set; get; } = true;
+    // tag
+    [Parameter] public RenderFragment? TitleTag { set; get; }
+    [Parameter] public RenderFragment? ContentTag { set; get; }
+    // style
+    [Parameter] public string? Style { set; get; }
+    // 点击事件 
+    [Parameter] public EventCallback Onclick { set; get; }
+
+}

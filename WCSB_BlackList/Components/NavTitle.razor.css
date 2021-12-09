@@ -1,0 +1,21 @@
+#NavTitle .t-nav-box {
+  padding: 10px;
+  background-color: white;
+  border-bottom: 1px solid #eee;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+}
+#NavTitle .t-nav-box .t-title {
+  font-size: 16px;
+  display: flex;
+  height: 26px;
+  align-items: center;
+  justify-content: start;
+}
+#NavTitle .t-nav-box .t-title .t-text {
+  flex: 1;
+  text-align: center;
+  font-weight: bold;
+}

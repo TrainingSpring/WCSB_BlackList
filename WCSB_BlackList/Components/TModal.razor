@@ -1,0 +1,78 @@
+﻿<div class="t-modal-mask" style="display: @(Show?"flex":"none")">
+    <div class="t-modal" style="@Style">
+        <div class="t-title">
+            @if (ModalHeader == null)
+            {
+                 <div style="width:calc(100% - .24rem)">@Title</div>
+            }
+            else
+            {
+                @ModalHeader
+            }
+            @if (ShowClose)
+            {
+                <span class="t-close" @onclick="@(Close)"><i class="fa fa-times"></i></span>
+            }
+           
+        </div>
+        <div class="t-body">
+            @ModalBody
+        </div>
+        <div class="t-footer">
+            @ModalFooter
+            <div class="t-button-box">
+                @if (ShowCancel)
+                {
+                    <Button Type="primary" Size="large" @onclick="@(Close)">取消</Button>
+                }
+                @if (ShowConfirm)
+                {
+                    <Button Type="default" Size="large" @onclick="@(OnConfirm)">确定</Button>
+                }
+            </div>
+        </div>
+        
+    </div>
+</div>
+@code {
+
+    [Parameter]
+    public bool Show { set; get; } = true;
+    [Parameter]
+    public EventCallback<bool> ShowChanged { set; get; }
+    // style 
+    [Parameter]
+    public string Style { set; get; } 
+    // 底部确认按钮是否显示
+    [Parameter]
+    public bool ShowConfirm { set; get; } = true;
+    // 底部取消按钮是否显示
+    [Parameter] public bool ShowCancel { set; get; } = true;
+    // 模态框标题
+    [Parameter]
+    public string Title { set; get; } = "title";
+    // 模态框关闭按钮是否显示
+    [Parameter]
+    public bool ShowClose { set; get; } = true;
+    // 模态框头部
+    [Parameter] public RenderFragment ModalHeader { get; set; }
+    // 模态框主体
+    [Parameter] public RenderFragment ModalBody { get; set; }
+    // 模态框底部
+    [Parameter] public RenderFragment ModalFooter { get; set; }
+    // 当模态框关闭后触发事件
+    [Parameter]
+    public EventCallback<MouseEventArgs> OnClosed { set; get; } 
+
+    // 确定按钮点击事件
+    [Parameter] public EventCallback<MouseEventArgs> OnCancel { set; get; }
+    // 取消按钮点击事件
+    [Parameter] public EventCallback<MouseEventArgs> OnConfirm { set; get; }
+    
+    private async Task  Close(MouseEventArgs args)
+    {
+        // Show = false;   此方法无效
+        await OnClosed.InvokeAsync(args);
+        await ShowChanged.InvokeAsync(false);  // 组件内调用数据更改
+    }
+}
