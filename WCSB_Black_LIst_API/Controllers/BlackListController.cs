@@ -3,10 +3,11 @@ using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Pomelo.EntityFrameworkCore.MySql;
+using Microsoft.AspNetCore.Mvc;
 using WCSB_Black_LIst_API.Models;
 using Npoi.Mapper;
 using Newtonsoft.Json;
@@ -29,7 +30,7 @@ namespace WCSB_Black_LIst_API.Controllers
             this.context = context;
         }
         // GET: api/<BlackList>
-        [HttpGet("GetBlackLists")]
+        [HttpGet("GetBlackLists"), EnableCors("getData")]
         public async Task<object> GetBlackLists(int page = 1, int limit = 20)
         {
             try
@@ -155,6 +156,21 @@ namespace WCSB_Black_LIst_API.Controllers
             {
                 return new { code = 500, message = e.Message };
             }
+        }
+        
+        [HttpGet("ExactSearch"), EnableCors("getData")] 
+        public async Task<object> ExactSearch(string name , string idCard)
+        { 
+            try 
+            {
+                var data = context.BlackList.Where(_ => _.IdCard == idCard && _.Name == name).FirstOrDefault();
+                return new { code = 200, data, message = "查询成功" };
+            }
+            catch (Exception e)
+            {
+                return new { code = 500, message = e.Message };
+            }
+             
         }
 
     }

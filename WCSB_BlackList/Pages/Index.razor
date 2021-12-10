@@ -1,4 +1,6 @@
 ﻿@page "/"
+@using Newtonsoft.Json
+@using Newtonsoft.Json.Linq
 @inject ConfirmService _confirmService
 <div id="BlackList">
     <NavTitle Title="信息查询"></NavTitle>
@@ -17,31 +19,81 @@
         
         <Button Type="@ButtonType.Primary" Size="@ButtonSize.Default" Style="width: 80%;margin: 20px 0;" OnClick="Search">查 询</Button>
     </div>
-    
+    <div class="details" style="display: @(ShowDetails?"block":"none");padding: 10px;">
+        <Row >
+            <Col Style="border: 1px solid #eee;border-right: none;text-align: center;padding: 5px;" Span="4">姓名</Col>
+            <Col Style="border:1px solid #eee;padding: 5px;" Span="20">@Name</Col>
+        </Row>
+        <Row>
+            <Col Style="border: 1px solid #eee;border-right: none;text-align: center;padding: 5px;" Span="4">证件号</Col>
+            <Col Style="border:1px solid #eee;padding: 5px;" Span="20">@IdCard</Col>
+        </Row>
+        <Row>
+            <Col Style="border: 1px solid #eee;border-right: none;text-align: center;padding: 5px;" Span="4">户籍地</Col>
+            <Col Style="border:1px solid #eee;padding: 5px;" Span="20">@Address</Col>
+        </Row>
+    </div>
 </div>
 @code {
-    string Name { set; get; } = "";
-    string IdCard { set; get; } = "";
+    string Name { set; get; } 
+    string IdCard { set; get; } 
     bool Visible { set; get; } = true;
-
+    string Address { set; get; } = "";
+    bool ShowDetails { set; get; } = false;
     async void Search()
     {
         // 提示类型
         var type = ConfirmIcon.Success;
         var content = "未查到该人员";
+        string title = "查询结果";
+        if (string.IsNullOrEmpty(Name) || string.IsNullOrEmpty(IdCard))
+        {
+            type = ConfirmIcon.Error;
+            content = "姓名和证件号均不允许为空!";
+            title = "提示";
+        }
+        else
+        {
+            title = "查询结果";
+            var result = await _request.Get("ExactSearch",new{idCard=IdCard,name = Name});
+            if (result.code == 200 && result.data == null)
+            {
+                Address = "";
+                ShowDetails = false;
+                type = ConfirmIcon.Success;
+                content = "未查到该人员";
+            }
+            else if(result.code == 200)
+            {
+                var data = (JObject)JsonConvert.DeserializeObject(result.data.ToString());
+                ShowDetails = true;
+                Address = data["address"].ToString();
+                type = ConfirmIcon.Warning;
+                content = "该人员属于预警人员";
+            }
+            else
+            {
+                title = "提示";
+                Address = "";
+                ShowDetails = false;
+                type = ConfirmIcon.Error;
+                content = result.message;
+            }
+        }
         // 配置
         var options = new ConfirmButtonOptions()
         {
             Button1Props = new AntDesign.ButtonProps()
             {
-               ChildContent = "确定"
+               ChildContent = "好, 我知道了"
             }
-        };
+        }; 
         var confirmResult = await 
             _confirmService.Show(
                 content, 
-                "查询结果", 
+                title, 
                 ConfirmButtons.OK, 
                 type,options);
+        StateHasChanged();
     }
 }
