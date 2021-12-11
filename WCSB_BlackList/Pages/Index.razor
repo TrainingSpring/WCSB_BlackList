@@ -10,9 +10,9 @@
         </ContentTag>
         
     </TCell>
-    <TCell Title="身份证号" RightArrow="false">
+    <TCell Title="证件号码" RightArrow="false">
         <ContentTag>
-            <TInput @bind-Value="IdCard" Placeholder="请输入身份证号" Style="text-align: right;width: 50vw;" Bordered="false"></TInput>
+            <TInput @bind-Value="IdCard" Placeholder="请输入证件号码" Style="text-align: right;width: 50vw;" Bordered="false"></TInput>
         </ContentTag>
     </TCell>
     <div style="text-align: center;">
@@ -55,7 +55,7 @@
         else
         {
             title = "查询结果";
-            var result = await _request.Get("ExactSearch",new{idCard=IdCard,name = Name});
+            var result = await _request.Post("ExactSearch",new{idCard=IdCard,name = Name});
             if (result.code == 200 && result.data == null)
             {
                 Address = "";

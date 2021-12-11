@@ -17,6 +17,11 @@ using Newtonsoft.Json.Serialization;
 
 namespace WCSB_Black_LIst_API.Controllers
 {
+    public class BlackListExcel {
+        public string? Name { set; get; }
+        public string? IdCard { set; get; }
+        public string? Address { set; get; }
+    }
     // [Route("api/[controller]")]
     [Produces("application/json")]
     [Consumes("application/json", "multipart/form-data")]//此处为新增 接受form表单数据
@@ -29,7 +34,21 @@ namespace WCSB_Black_LIst_API.Controllers
         {
             this.context = context;
         }
-        // GET: api/<BlackList>
+        /// <summary>
+        /// 通过idCard查重
+        /// </summary>
+        /// <param name="idCard"></param>
+        /// <returns></returns>
+        private async Task<BlackList> SearchRepeat(string idCard)
+        {
+            return await context.BlackList.Where(_ => _.IdCard == idCard).FirstOrDefaultAsync();
+        }
+        /// <summary>
+        /// 获取黑名单列表 
+        /// </summary>
+        /// <param name="page">页码</param>
+        /// <param name="limit">每页数量</param>
+        /// <returns></returns>
         [HttpGet("GetBlackLists"), EnableCors("getData")]
         public async Task<object> GetBlackLists(int page = 1, int limit = 20)
         {
@@ -49,8 +68,13 @@ namespace WCSB_Black_LIst_API.Controllers
                 return new {code = 400,message=e.Message};
             }
         }
-
-        // GET api/<BlackList>/5
+        /// <summary>
+        /// 通过关键字搜索
+        /// </summary>
+        /// <param name="keyword">关键字</param>
+        /// <param name="page">页码</param>
+        /// <param name="limit">每页数量</param>
+        /// <returns></returns>
         [HttpGet("Search")]
         public async Task<object> Search(string keyword,int page = 1, int limit = 20)
         {
@@ -69,12 +93,12 @@ namespace WCSB_Black_LIst_API.Controllers
                 return new {code = 400,message=e.Message};  
             }
         }
-        private class BlackListExcel {
-            public string? Name { set; get; }
-            public string? IdCard { set; get; }
-            public string? Address { set; get; }
-        }
-        // POST api/<BlackList>
+        /// <summary>
+        /// 处理Excel文件
+        /// </summary>
+        /// <param name="files"></param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
         [HttpPost("UploadExcel")]
         public async Task<object> UploadExcel(IFormCollection files) 
         {
@@ -90,16 +114,37 @@ namespace WCSB_Black_LIst_API.Controllers
                     }
                     var mapper = new Mapper(file.OpenReadStream());
                     var map = mapper.Map<BlackListExcel>("姓名", o => o.Name).Map<BlackListExcel>("证件号码", o => o.IdCard).Map<BlackListExcel>("户籍地", o => o.Address);
-                    var data = map.Take<BlackListExcel>("sheet1").Select(_ => _.Value);
+                    var data = map.Take<BlackListExcel>("sheet1").Select(_ => _.Value).ToList();
 
-                    foreach (var item in data)
+                    for (int i = 0; i < data.Count(); i++)
                     {
-                        if(item.Address == null)
+                        next:
+                        var item = data[i];
+                        // 判断excel重复
+                        for (int j = 0; j < i; j++)
                         {
-                            Console.WriteLine(item);
+                            var _item = data[j];
+                            if (_item.IdCard == item.IdCard)
+                            {
+                                i++;
+                                goto next;
+                            }
                         }
-                        var black = new BlackList() {IdCard = item.IdCard, Name = item.Name, Address = item.Address };
-                        context.BlackList.Add(black);
+                        var repeat = await SearchRepeat(item.IdCard);
+                        // 判断数据库重复, 有则更新 无则添加
+                        if (repeat==null)
+                        {
+                            var black = new BlackList() {IdCard = item.IdCard, Name = item.Name, Address = item.Address };
+                            context.BlackList.Add(black);
+                        }
+                        // 如果数据库中有重复 , 且数据有变化 , 则执行更新操作
+                        else if (repeat.IdCard != item.IdCard || repeat.Name != item.Name || repeat.Address != item.Address)
+                        {
+                            repeat.IdCard = item.IdCard;
+                            repeat.Name = item.Name;
+                            repeat.Address = item.Address;
+                            context.SaveChanges();
+                        }
                     }
                     context.SaveChanges();
                 }
@@ -109,7 +154,11 @@ namespace WCSB_Black_LIst_API.Controllers
                 return new { code = 500, message = e.Message };
             } 
         }
-         
+        /// <summary>
+        /// 更新 / 新增 数据(取决于有没有id  或者说id是否为0)
+        /// </summary>
+        /// <param name="blackList"></param>
+        /// <returns></returns>
         [HttpPost("UpdatePeople")]
         public async Task<object> UpdatePeople(BlackList blackList )
          {
@@ -121,6 +170,11 @@ namespace WCSB_Black_LIst_API.Controllers
                 string idCard = blackList.IdCard;
                 if (id == 0)
                 {
+                    
+                    if (await SearchRepeat(idCard)!=null)
+                    {
+                        return new { code = 400, message = "证件号重复!" }; 
+                    }
                     var data = new BlackList() { IdCard = idCard, Name = name, Address = address };
                     context.BlackList.Add(data);
                 }
@@ -139,6 +193,11 @@ namespace WCSB_Black_LIst_API.Controllers
                  return new { code = 500, message = e.Message };
             }
         }
+        /// <summary>
+        /// 通过id删除对象
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
         [HttpPost("DeletePeople")]
         public async Task<object> DeletePeople(object obj)
         {
@@ -157,13 +216,17 @@ namespace WCSB_Black_LIst_API.Controllers
                 return new { code = 500, message = e.Message };
             }
         }
-        
-        [HttpGet("ExactSearch"), EnableCors("getData")] 
-        public async Task<object> ExactSearch(string name , string idCard)
+        /// <summary>
+        /// 精确查找
+        /// </summary>
+        /// <param name="obj">对象中 cardId, name必填</param>
+        /// <returns></returns>
+        [HttpPost("ExactSearch"), EnableCors("getData")] 
+        public async Task<object> ExactSearch(BlackList obj)
         { 
             try 
             {
-                var data = context.BlackList.Where(_ => _.IdCard == idCard && _.Name == name).FirstOrDefault();
+                var data = context.BlackList.Where(_ => _.IdCard == obj.IdCard && _.Name == obj.Name).FirstOrDefault();
                 return new { code = 200, data, message = "查询成功" };
             }
             catch (Exception e)

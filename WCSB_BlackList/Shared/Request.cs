@@ -35,11 +35,11 @@ namespace WCSB_BlackList.Shared
     public class Request:IRequest
     {
         private readonly HttpClient _httpClient = new HttpClient(); 
-        public static string Host { set; get; } = "https://localhost:44338/";
+        // public static string Host { set; get; } = "https://localhost:44338/";
+        // public static string Path { set; get; } = "api/";
+        public static string Host { set; get; } = "http://172.20.30.84:8080/";
         public static string Path { set; get; } = "api/";
         [Inject] IJSRuntime JS { set; get; }
-        // public static string Host { set; get; } = "http://192.168.86.11:8002/";
-        // public static string Path { set; get; } = "api/API/";
         /// <summary>
         /// Post请求
         /// </summary>
